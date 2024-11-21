@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 ##
 # omnibus - deadbits.
 # HTTP requests library
@@ -9,12 +9,12 @@ import warnings
 from requests.packages.urllib3 import exceptions
 
 
-# class HTTP(object):
+# class HTTP:  # Python 3 style class definition
 #    def __init__(self, proxy=None):
 #        if proxy is not None:
 #            self.proxy = {
-#                'http': 'socks5://%s' % proxy,
-#                'https': 'socks5://%s' % proxy
+#                'http': f'socks5://{proxy}',  # f-string
+#                'https': f'socks5://{proxy}'  # f-string
 #            }
 #        else:
 #            self.proxy = proxy
@@ -31,13 +31,9 @@ def post(*args, **kwargs):
 
         try:
             req = requests.post(*args, **kwargs)
-        except:
+            return (True, req) if req.status_code == 200 else (False, req)
+        except requests.RequestException as err:
             return (False, None)
-
-        if req.status_code == 200:
-            return (True, req)
-        else:
-            return (False, req)
 
 
 def get(*args, **kwargs):
@@ -51,10 +47,6 @@ def get(*args, **kwargs):
 
         try:
             req = requests.get(*args, **kwargs)
-        except:
+            return (True, req) if req.status_code == 200 else (False, req)
+        except requests.RequestException as err:
             return (False, None)
-
-        if req.status_code == 200:
-            return (True, req)
-        else:
-            return (False, req)

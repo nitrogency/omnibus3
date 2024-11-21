@@ -1,11 +1,11 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import os
 import re
 import sys
 import json
 import string
 import datetime
-import ConfigParser
+import configparser
 
 from pygments import lexers
 from pygments import highlight
@@ -72,12 +72,12 @@ def pp_json(data):
     if data is None:
         warning('No data returned from module.')
     else:
-        print(highlight(unicode(json.dumps(data, indent=4, default=jsondate), 'UTF-8'),
+        print(highlight(str(json.dumps(data, indent=4, default=jsondate)),
             lexers.JsonLexer(), formatters.TerminalFormatter()))
 
 
 def get_option(section, name, conf):
-    config = ConfigParser.ConfigParser()
+    config = configparser.ConfigParser()
     if not os.path.exists(conf):
         error('configuration file %s does not exist!' % conf)
         return None
@@ -85,7 +85,7 @@ def get_option(section, name, conf):
     answer = None
     try:
         answer = config.get(section, name)
-    except:
+    except Exception:
         pass
     return answer
 
@@ -124,7 +124,7 @@ def list_dir(directory):
 def write_file(file_path, data):
     """ Write data to a specified file path by appending """
     try:
-        with open(file_path, 'a+') as fp:
+        with open(file_path, 'a+', encoding='utf-8') as fp:
             fp.write(data)
         return True
     except Exception as err:
@@ -143,10 +143,11 @@ def is_valid(file_path):
 def read_file(file_path, lines=False):
     """ Read a given file and optionally return content lines or raw data """
     if is_valid(file_path):
-        if lines:
-            data = (open(file_path, 'rb').read()).split('\n')
-        else:
-            data = open(file_path, 'rb').read()
+        with open(file_path, 'r', encoding='utf-8') as f:
+            if lines:
+                data = f.read().split('\n')
+            else:
+                data = f.read()
         return data
     return False
 
@@ -154,7 +155,8 @@ def read_file(file_path, lines=False):
 def load_json(file_name):
     """ Load arbitrary JSON files by file name """
     if is_valid(file_name):
-        return json.load(open(file_name, 'rb'))
+        with open(file_name, 'r', encoding='utf-8') as f:
+            return json.load(f)
     return None
 
 
@@ -165,9 +167,9 @@ def mkdir(path):
     else:
         try:
             os.mkdir(path)
-            os.chmod(path, 0777)
+            os.chmod(path, 0o777)
             return True
-        except:
+        except Exception:
             return False
 
 
@@ -183,7 +185,7 @@ def lookup_key(session, artifact):
         artifact = int(artifact)
         value = session.get(artifact)
         valid_key = True
-    except:
+    except (ValueError, TypeError):
         pass
 
     return (valid_key, value)
@@ -195,9 +197,9 @@ def utf_decode(data):
         return data
 
     try:
-        decoded = str(data.decode('utf-8'))
+        decoded = data.decode('utf-8')
         return decoded
-    except ValueError:
+    except (ValueError, AttributeError):
         return data
 
 
@@ -281,5 +283,5 @@ def detect_type(artifact):
             accepted = set(string.ascii_letters + string.digits + '_' + '-')
             if set(artifact) <= accepted:
                 return 'user'
-        except:
+        except (TypeError, AttributeError):
             return None

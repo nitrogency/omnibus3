@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 ##
 # omnibus - deadbits.
 #
@@ -7,16 +7,14 @@
 ##
 
 from redis import Redis
+from lib.common import (
+    error,
+    get_option,
+    utf_decode,
+    utf_encode
+)
 
-from common import error
-
-from common import get_option
-
-from common import utf_decode
-from common import utf_encode
-
-
-class RedisCache(object):
+class RedisCache:  
     def __init__(self, config):
         self.host = get_option('redis', 'host', config)
         self.port = int(get_option('redis', 'port', config))
@@ -26,7 +24,8 @@ class RedisCache(object):
         try:
             self.db = Redis(db=self.database, host=self.host,
                 port=self.port, socket_timeout=None)
-        except:
+        except Exception as err:
+            error(f'[redis] failed to connect to Redis (error: {str(err)})')
             self.db = None
 
 
@@ -38,7 +37,7 @@ class RedisCache(object):
                 return utf_decode(ret_val)
             return ret_val
         except Exception as err:
-            error('[redis] failed to receive message from queue %s (error: %s)' % (queue_name, str(err)))
+            error(f'[redis] failed to receive message from queue {queue_name} (error: {str(err)})')
             pass
 
 
@@ -47,7 +46,7 @@ class RedisCache(object):
         try:
             self.db.delete(names)
         except Exception as err:
-            error('[redis] failed to delete artifacts (error: %s)' % str(err))
+            error(f'[redis] failed to delete artifacts (error: {str(err)})')
 
 
     def exists(self, key):

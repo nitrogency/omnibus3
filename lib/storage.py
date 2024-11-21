@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 ##
 # omnibus - deadbits.
 # output storage management
@@ -6,11 +6,8 @@
 import os
 import json
 
-from common import timestamp
-
-from common import error
-from common import success
-from common import warning
+from lib.common import success
+from lib.common import warning
 
 
 class JSON(object):
@@ -19,7 +16,7 @@ class JSON(object):
         self.file_path = None
 
         if file_name == 'report.json':
-            self.file_name = '%s_%s.json' % (data['name'], timestamp)
+            self.file_name = f'{data["name"]}_{timestamp}.json'
         else:
             self.file_name = file_name
 
@@ -32,16 +29,16 @@ class JSON(object):
             self.file_path = os.path.join(file_path, file_name)
             if not os.path.exists(self.file_path):
                 self.save()
-                success('saved report to %s' % self.file_path)
+                success(f'saved report to {self.file_path}')
             return False
         else:
-            error('unable to find directory %s - cannot save report' % file_path)
+            error(f'unable to find directory {file_path} - cannot save report')
             return False
 
 
     def save(self):
         if self.file_path:
-            with open(self.file_path, 'wb') as fp:
-                json.dump(self.data, fp)
+            with open(self.file_path, 'w', encoding='utf-8') as fp:
+                json.dump(self.data, fp, ensure_ascii=False, indent=2)
         else:
             warning('file path not correctly set - cannot save report')

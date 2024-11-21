@@ -1,28 +1,29 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 ##
 # omnibus - deadbits.
 # mongodb interaction
 ##
 
 import pymongo
+from lib.common import error
+from lib.common import warning
+from lib.common import success
+from lib.common import get_option
 
-from common import error
 
-from common import get_option
-
-
-class Mongo(object):
+class Mongo:  
     def __init__(self, config):
         self._host = get_option('mongo', 'host', config)
         self._port = int(get_option('mongo', 'port', config))
-        self._server = '%s:%s' % (self._host, self._port)
+        self._database = get_option('mongo', 'database', config)
+        self._server = f'{self._host}:{self._port}'
         try:
             self.conn = pymongo.MongoClient(self._server)
         except Exception as err:
-            error('failed to connect to Mongo instance: %s' % str(err))
+            error(f'failed to connect to Mongo instance: {str(err)}')
             raise err
 
-        self.db = self.conn['omnibus']
+        self.db = self.conn['mongo']
         self.collections = ['email', 'user', 'host', 'hash', 'bitcoin']
 
 
@@ -33,7 +34,7 @@ class Mongo(object):
     def get_value(self, collection, query, key):
         """ get value of given key from db query """
         coll = self.use_coll(collection)
-        result = dict(coll.find_one(query, {key: 1}))
+        result = dict(coll.find_one(query, {key: 1}) or {})
         if result == {}:
             return None
         return result[key]
@@ -49,7 +50,7 @@ class Mongo(object):
 
     def count(self, collection, query={}):
         coll = self.use_coll(collection)
-        return coll.count(query)
+        return coll.count_documents(query)  
 
 
     def insert_one(self, collection, data):
@@ -60,9 +61,10 @@ class Mongo(object):
         doc_id = None
 
         try:
-            doc_id = coll.insert(data)
+            result = coll.insert_one(data)  
+            doc_id = result.inserted_id
         except Exception as err:
-            error('failed to index data: %s' % str(err))
+            error(f'failed to index data: {str(err)}')
             pass
 
         return str(doc_id)
@@ -73,9 +75,10 @@ class Mongo(object):
         doc_id = None
 
         try:
-            doc_id = coll.update(query, {'$set': new_data})
-        except:
-            error('failed to update documents: %s' % query)
+            result = coll.update_one(query, {'$set': new_data})  
+            doc_id = result.modified_count
+        except Exception as err:
+            error(f'failed to update documents: {query}')
 
         return doc_id
 
@@ -83,9 +86,9 @@ class Mongo(object):
     def delete_one(self, collection, query):
         coll = self.use_coll(collection)
         try:
-            coll.remove(query)
-        except:
-            error('failed to delete documets: %s' % query)
+            coll.delete_one(query)  
+        except Exception as err:
+            error(f'failed to delete documents: {query}')
             pass
 
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 ##
 # The OSINT Omnibus
 # --
@@ -21,6 +21,7 @@ from lib import asciiart
 from lib.mongo import Mongo
 from lib.cache import RedisCache
 from lib.dispatch import Dispatch
+from lib.document import Document
 
 from lib.common import info
 from lib.common import mkdir
@@ -36,9 +37,6 @@ from lib.common import detect_type
 
 from lib.common import read_file
 from lib.common import get_option
-
-from lib.models import create_artifact
-
 
 help_dict = {
     'general': [
@@ -59,9 +57,15 @@ help_dict = {
     ]
 }
 
-
 class Console(cmd2.Cmd):
     def __init__(self):
+        config = os.path.abspath('etc/omnibus.conf')
+        if os.path.exists(config):
+            info('Using configuration file (%s) ...' % config)
+        else:
+            error('Cannot find configuration file. Create /etc/omnibus.conf or specify with --config option')
+            sys.exit(1)
+
         cmd2.Cmd.__init__(self,
             completekey='tab',
             persistent_history_file=get_option('core', 'hist_file', config),
@@ -75,17 +79,12 @@ class Console(cmd2.Cmd):
         self.redirector = '>'
         self.quit_on_sigint = False
 
-        del cmd2.Cmd.do_alias
-        del cmd2.Cmd.do_edit
-        del cmd2.Cmd.do_eof
-        del cmd2.Cmd.do_shell
-        del cmd2.Cmd.do_eos
-        del cmd2.Cmd.do_load
-        del cmd2.Cmd.do_py
-        del cmd2.Cmd.do_pyscript
-        del cmd2.Cmd.do_shortcuts
-        del cmd2.Cmd.do_unalias
-        del cmd2.Cmd.do__relative_load
+        # Remove default cmd2 commands we don't want
+        commands_to_remove = ['alias', 'edit', 'eof', 'shell', 'load', 'py', 'pyscript', 
+                            'shortcuts', 'unalias', '_relative_load']
+        for cmd in commands_to_remove:
+            if hasattr(cmd2.Cmd, f'do_{cmd}'):
+                delattr(cmd2.Cmd, f'do_{cmd}')
 
         self.db = Mongo(config)
         self.dispatch = Dispatch(self.db)
@@ -117,15 +116,12 @@ class Console(cmd2.Cmd):
 
 
     def do_quit(self, _):
-        """Exit Omnibus shell."""
-        self._should_quit = True
-
-        if self.session is not None:
-            running('Clearing artifact cache ...')
-            self.session.flush()
-
+        """ Exit Omnibus shell."""
+        info('Clearing artifact cache ...')
         warning('Closing Omnibus shell ...')
-        return self._STOP_AND_EXIT
+        if hasattr(self.db, 'conn'):
+            self.db.conn.close()
+        return True
 
 
     def do_clear(self, arg):
@@ -190,9 +186,9 @@ class Console(cmd2.Cmd):
         keys = self.session.db.scan_iter()
         for key in keys:
             value = self.session.get(key)
-            print('[%s] %s' % (key, value))
+            print(f'[{key}] {value}')
             count += 1
-        info('Active Artifacts: %d' % count)
+        info(f'Active Artifacts: {count}')
 
 
     def do_wipe(self, arg):
@@ -211,16 +207,16 @@ class Console(cmd2.Cmd):
         Usage: rm <session id>"""
         try:
             arg = int(arg)
-        except:
+        except ValueError:
             error('Artifact ID must be an integer')
             return
 
         if self.session is not None:
             if self.session.exists(arg):
                 self.session.delete(arg)
-                success('Removed artifact from cache (%s)' % arg)
+                success(f'Removed artifact from cache ({arg})')
             else:
-                warning('Unable to find artifact by ID (%s)' % arg)
+                warning(f'Unable to find artifact by ID ({arg})')
         else:
             warning('No active session; start a new session by running the "session" command')
 
@@ -232,16 +228,16 @@ class Console(cmd2.Cmd):
         an FQDN artifacts name is the domain name, and so on.
 
         Usage: new <artifact name> """
-        artifact = create_artifact(arg)
+        artifact = Document(arg)
 
         if not self.db.exists(artifact.type, {'name': artifact.name}):
             doc_id = self.db.insert_one(artifact.type, artifact)
             if doc_id is not None:
-                success('Created new artifact (%s - %s)' % (artifact.name, artifact.type))
+                success(f'Created new artifact ({artifact.name} - {artifact.type})')
 
         if self.session is None:
             self.session = RedisCache(config)
-            self.session.set(1, artifact.name)
+            self.session.set(1, arg)
             success('Opened new session')
             print('Artifact ID: 1')
         else:
@@ -249,8 +245,8 @@ class Console(cmd2.Cmd):
             for key in self.session.db.scan_iter():
                 count += 1
             _id = count + 1
-            self.session.set(_id, artifact.name)
-            print('Artifact ID: %s' % _id)
+            self.session.set(_id, arg)
+            print(f'Artifact ID: {_id}')
 
 
     def do_delete(self, arg):
@@ -278,8 +274,9 @@ class Console(cmd2.Cmd):
         Usage: cat apikeys
                cat <artifact name>"""
         if arg == 'apikeys':
-            data = json.load(open(common.API_CONF, 'rb'))
-            print json.dumps(data, indent=2)
+            with open(common.API_CONF, 'r') as f:
+                data = json.load(f)
+            print(json.dumps(data, indent=2))
         else:
             is_key, value = lookup_key(self.session, arg)
 
@@ -296,7 +293,7 @@ class Console(cmd2.Cmd):
             if len(result) == 0:
                 info('No entry found for artifact (%s)' % arg)
             else:
-                print json.dumps(result, indent=2, separators=(',', ':'))
+                print(json.dumps(result, indent=2, separators=(',', ':')))
 
 
     def do_open(self, arg):
@@ -312,12 +309,12 @@ class Console(cmd2.Cmd):
 
         artifacts = read_file(arg, True)
         for artifact in artifacts:
-            new_artifact = create_artifact(artifact)
+            new_artifact = Document(artifact)
 
             if not self.db.exists(new_artifact.type, {'name': new_artifact.name}):
                 doc_id = self.db.insert_one(new_artifact.type, new_artifact)
                 if doc_id is not None:
-                    success('Created new artifact (%s - %s)' % (artifact.name, artifact.type))
+                    success(f'Created new artifact ({new_artifact.name} - {new_artifact.type})')
 
             if self.session is None:
                 self.session = RedisCache(config)
@@ -330,7 +327,7 @@ class Console(cmd2.Cmd):
                     count += 1
                 _id = count + 1
                 self.session.set(_id, arg)
-                print('Artifact ID: %s' % _id)
+                print(f'Artifact ID: {_id}')
 
         success('Finished loading artifact list')
 
@@ -359,7 +356,7 @@ class Console(cmd2.Cmd):
             report = storage.JSON(data=result, file_path=output_dir)
             report.save()
             if os.path.exists(report.file_path):
-                success('Saved artifact report (%s)' % report.file_path)
+                success(f'Saved artifact report ({report.file_path})')
             else:
                 error('Failed to properly save report')
 
@@ -578,7 +575,7 @@ class Console(cmd2.Cmd):
             is_key, value = lookup_key(self.session, arg)
 
             if is_key and value is None:
-                error('Unable to find artifact key in session (%s)' % arg)
+                error(f'Unable to find artifact key in session ({arg})')
                 return
             elif is_key and value is not None:
                 arg = value
@@ -587,7 +584,7 @@ class Console(cmd2.Cmd):
 
         if self.db.exists(_type, {'name': last}):
             self.db.update_one(_type, {'name': last}, {'source': arg})
-            success('Added source to artifact entry (%s: %s)' % (last, arg))
+            success(f'Added source to artifact entry ({last}: {arg})')
         else:
             warning('Failed to find last artifact in MongoDB. Run "new <artifact name>" before using the source command')
 
@@ -673,20 +670,20 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    config = '%s/etc/omnibus.conf' % os.path.dirname(os.path.realpath(__file__))
+    config = f'{os.path.dirname(os.path.realpath(__file__))}/etc/omnibus.conf'
 
     output_dir = args.output
     DEBUG = args.debug
 
-    info('Using configuration file (%s) ...' % config)
-    info('Debug: %s' % DEBUG)
+    info(f'Using configuration file ({config}) ...')
+    info(f'Debug: {DEBUG}')
 
     if os.path.exists(output_dir):
         if not os.path.isdir(output_dir):
             error('Specified report output location is not a directory; exiting ...')
             sys.exit(1)
     else:
-        info('Creating report output directory (%s) ...' % output_dir)
+        info(f'Creating report output directory ({output_dir}) ...')
         mkdir(output_dir)
 
     console = Console()

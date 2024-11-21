@@ -1,22 +1,14 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 ##
 # omnibus - deadbits
 # module execution for CLI application
 ##
 import importlib
-
-from common import info
-from common import error
-from common import success
-from common import warning
-
-from common import lookup_key
-from common import detect_type
-
-from models import create_artifact
+from lib.common import lookup_key, detect_type, error, warning, info, success, timestamp
+from lib.document import Document
 
 
-class Dispatch(object):
+class Dispatch:  
     def __init__(self, db):
         self.db = db
         self.modules = {
@@ -50,7 +42,7 @@ class Dispatch(object):
         is_key, value = lookup_key(session, artifact)
 
         if is_key and value is None:
-            error('Unable to find artifact key in session (%s)' % artifact)
+            error(f'Unable to find artifact key in session ({artifact})')
             return
         elif is_key and value is not None:
             artifact = value
@@ -77,23 +69,33 @@ class Dispatch(object):
                     if self.db.exists(artifact['type'], {'name': artifact['name']}):
 
                         for child in result['children']:
-                            child_artifact = create_artifact(child['name'], parent=artifact['name'],
-                                _type=child['type'], source=child['source'], subtype=child['subtype'])
+                            child_artifact = Document(
+                                name=child['name'],
+                                type=child['type'],
+                                subtype=child['subtype'],
+                                source=child['source'],
+                                parent=artifact['name'],
+                                created=timestamp(),
+                                children=[],
+                                tags=[],
+                                notes=[],
+                                data={}
+                            )
 
                             if not self.db.exists(child['type'], {'name': child['name']}):
                                 self.db.insert_one(child['type'], child_artifact)
 
                         self.db.update_one(artifact['type'], {'name': artifact['name']}, result)
                         if len(result['children']) > 0:
-                            info('Created child artifacts: %d' % len(result['children']))
+                            info(f'Created child artifacts: {len(result["children"])}')
 
-                    results.append({'[%s]' % m: result['data'][m]})
+                    results.append({f'[{m}]': result['data'][m]})
 
                 else:
-                    warning('No results found (%s)' % m)
+                    warning(f'No results found ({m})')
 
             else:
-                warning('Failed to get module results (%s)' % m)
+                warning(f'Failed to get module results ({m})')
 
         success('Machine completed')
 
@@ -107,7 +109,7 @@ class Dispatch(object):
         is_key, value = lookup_key(session, artifact)
 
         if is_key and value is None:
-            error('Unable to find artifact key in session (%s)' % artifact)
+            error(f'Unable to find artifact key in session ({artifact})')
             return
         elif is_key and value is not None:
             artifact = value
@@ -119,13 +121,13 @@ class Dispatch(object):
         artifact = self.db.find(artifact_type, {'name': artifact}, one=True)
 
         if artifact is None:
-            warning('Unable to find artifact in database (%s)' % artifact['name'])
+            warning(f'Unable to find artifact in database ({artifact["name"]})')
             return None
 
             if module in self.modules[artifact['type']] or module in self.modules[artifact['subtype']]:
                 pass
             else:
-                warning('Artifact is not supported by module (%s)' % (artifact['name']))
+                warning(f'Artifact is not supported by module ({artifact["name"]})')
                 return None
 
         result = self.run(module, artifact)
@@ -135,8 +137,18 @@ class Dispatch(object):
                 if self.db.exists(artifact['type'], {'name': artifact['name']}):
 
                     for child in result['children']:
-                        child_artifact = create_artifact(child['name'], parent=artifact['name'],
-                            _type=child['type'], source=child['source'], subtype=child['subtype'])
+                        child_artifact = Document(
+                            name=child['name'],
+                            type=child['type'],
+                            subtype=child['subtype'],
+                            source=child['source'],
+                            parent=artifact['name'],
+                            created=timestamp(),
+                            children=[],
+                            tags=[],
+                            notes=[],
+                            data={}
+                        )
 
                         if not self.db.exists(child['type'], {'name': child['name']}):
                             self.db.insert_one(child['type'], child_artifact)
@@ -144,16 +156,16 @@ class Dispatch(object):
                     self.db.update_one(artifact['type'], {'name': artifact['name']}, result)
 
                     if len(result['children']) > 0:
-                        info('Created child artifacts: %d' % len(result['children']))
+                        info(f'Created child artifacts: {len(result["children"])}')
 
                 return result['data'][module]
 
             else:
-                warning('No results found (%s)' % module)
+                warning(f'No results found ({module})')
                 return None
 
         else:
-            warning('Failed to get module results (%s)' % module)
+            warning(f'Failed to get module results ({module})')
 
 
     def run(self, module, artifact):
@@ -161,15 +173,15 @@ class Dispatch(object):
         results = None
 
         try:
-            ptr = importlib.import_module('lib.modules.%s' % module)
+            ptr = importlib.import_module(f'lib.modules.{module}')
         except Exception as err:
-            error('Failed to load module (%s)' % module)
+            error(f'Failed to load module ({module})')
             raise err
 
         try:
             results = ptr.main(artifact)
         except Exception as err:
-            error('Exception caught when running module (%s)' % module)
+            error(f'Exception caught when running module ({module})')
             raise err
 
         return results
