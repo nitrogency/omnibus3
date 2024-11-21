@@ -1,7 +1,6 @@
 # OSINT Omnibus
-- Developed & maintained by [InQuest](https://www.inquest.net)
-- ![Release](https://img.shields.io/badge/Release-Beta-blue.svg)
-- [![Rawsec's CyberSecurity Inventory](http://list.rawsec.ml/img/badges/Rawsec-inventoried-FF5050_flat_without_logo.svg)](http://list.rawsec.ml/tools.html#Omnibus)
+- Originally developed by [InQuest](https://www.inquest.net)
+- Updated by [nitrogency](https://github.com/nitrogency)
 
 
 Table of Contents
@@ -9,6 +8,7 @@ Table of Contents
 
 * [OSINT Omnibus](#osint-omnibus)
   * [Omnibus](#omnibus)
+  * [Installation](#installation)
     * [Documentation](#documentation)
     * [Vocabulary](#vocabulary)
     * [Running Omnibus](#running-omnibus)
@@ -23,6 +23,7 @@ Table of Contents
     * [Reporting](#reporting)
     * [Monitoring Modules](#monitoring-modules)
 
+## Installation
 
 ## Omnibus
 An Omnibus is defined as `a volume containing several novels or other items previously published separately` and that is exactly what the InQuest Omnibus project intends to be for Open Source Intelligence collection, research, and artifact management.
@@ -161,35 +162,7 @@ of your own, please create a pull request.
 Also, within the Omnibus console, typing the module name will show you the Help information associated with that module.
 
 **Modules**
-* Blockchain.info
-* Censys
-* ClearBit
-* CSIRTG
-* Cymon
-* DNS resolution
-* DShield (SANS ISC)
-* Full Contact
-* Geolocation
-* GitHub username search
-* HackedEmails.com
-* HaveIBeenPwned.com
-* Hurricane Electric
-* IPInfo
-* IPVoid
-* Keybase username lookup
-* NMap scanner
-* OTX (AlienVault)
-* PassiveTotal
-* PGP Key Search
-* RSS reader 
-* Shodan
-* ThreatCrowd
-* ThreatExpert
-* Twitter
-* URLVoid
-* VirusTotal
-* WHOIS
-* WhoisMind
+
 
 ### Machines
 Machines are a simple way to run all available modules for an artifact type against a given artifact. This is a fast way if you want to gather as much information on a target as possible using a single command.
