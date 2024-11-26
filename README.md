@@ -20,8 +20,6 @@ A modular OSINT tool updated to work with Python3. Tested on Debian 12.
 - Reworked the structure of the program, now everything is (mostly) part of one script, with only modules being separate. 
 
 ### Vocabulary
-Before we begin we'll need to cover some terminology used by Omnibus.
-
 * Artifact:
   - An item to investigate
   - Artificats can be created in two ways:
@@ -34,9 +32,6 @@ Before we begin we'll need to cover some terminology used by Omnibus.
   - Python script that performs some arbitirary OSINT task against an artifact
  
 ### Artifacts
-#### Overview
-Most cyber investigations begin with one or more technical indicators, such as an IP address, file hash or email address. After searching and analyzing, relationships begin to form and you can pivot through connected data points. These data points are called Artifacts within Omnibus and represent any item you wish to investigate.
-
 Artifacts can be one of the following types:
 * IPv4 address
 * FQDN
@@ -47,6 +42,4 @@ Artifacts can be one of the following types:
 ### Sessions
 Omnibus makes use of a feature called "sessions". Sessions are temporary caches created via Redis each time you start a CLI session. Every time you create an artifact, that artifacts name is added to the Session along with a numeric key that makes for easy retrieval, searching, and action against the related artifact.
 For example if you're session held one item of "inquest.net", instead of needing to execute `virustotal inquest.net` you could also run `virustotal 1` and you would receive the same results. In fact, this works against any module or command that uses an artiface name as it's first argument.
-
-By default the redirected output files are saved in the current working directory, therefore "omnibus/", but if you specify a full path such as `virustotal inquest.net > /home/adam/intel/cases/001/vt-lookup.json` the JSON formatted output will be saved there.
 
