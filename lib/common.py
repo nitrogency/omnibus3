@@ -20,6 +20,10 @@ def is_hash(artifact: str) -> bool:
     """Check if artifact is a hash"""
     return all(c in '0123456789abcdefABCDEF' for c in artifact) and len(artifact) in [32, 40, 64]
 
+def is_keyword(artifact: str) -> bool:
+    """Check if artifact is a keyword search term"""
+    return True  # All strings can be keywords
+
 def detect_type(artifact: str) -> str:
     """Detect artifact type based on its characteristics"""
     if is_btc_address(artifact):
@@ -30,4 +34,4 @@ def detect_type(artifact: str) -> str:
         return 'fqdn'
     elif is_hash(artifact):
         return 'hash'
-    return 'unknown'
+    return 'keyword'  # Default to keyword if no other type matches

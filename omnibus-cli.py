@@ -256,9 +256,10 @@ class OmnibusShell(cmd2.Cmd):
         # Module mapping
         self.modules = {
             'btc': ['blockchain'],
-            'hash': ['virustotal'],
-            'ipv4': ['geoip', 'ipinfo', 'ipvoid', 'nmap', 'shodan', 'virustotal', 'viewdns'],
-            'fqdn': ['geoip', 'ipvoid', 'nmap', 'shodan', 'virustotal', 'viewdns']
+            'hash': ['virustotal', 'greyhat'],
+            'ipv4': ['virustotal', 'viewdns'],
+            'fqdn': ['virustotal', 'viewdns', 'crtsh'],
+            'keyword': ['greyhat']
         }
 
     def _run_module(self, module: str, artifact: Optional[Dict]) -> Optional[Dict]:
@@ -287,12 +288,72 @@ class OmnibusShell(cmd2.Cmd):
             print(f"[!] Error showing help for module {module}: {str(e)}")
 
     def do_help(self, arg: str) -> None:
-        """Show help information for a module
-        Usage: help <module>
-        Example: help viewdns"""
+        """Show help information for commands or modules
+        Usage: 
+            help          - Show this general help message
+            help <module> - Show help for a specific module
+        
+        Available commands:
+            session  - Manage sessions (create/select/list/current)
+            new     - Create a new artifact
+            modules - List available modules for an artifact
+            run     - Run a specific module against an artifact
+            machine - Run all available modules against an artifact
+            ls      - List artifacts in current session
+            wipe    - Clear current session
+            quit    - Exit Omnibus
+            help    - Show this help message"""
+        
         if not arg:
-            # If no argument provided, show general help
-            super().do_help(arg)
+            # Show general help
+            print("\nOmnibus - OSINT Intelligence Framework")
+            print("=" * 40)
+            
+            # Show command help
+            print("\nCore Commands:")
+            print("-" * 15)
+            print("  session")
+            print("    Usage: session <command> [args]")
+            print("    Commands:")
+            print("      create <name>  - Create a new session")
+            print("      select <name>  - Select an existing session")
+            print("      list          - List all available sessions")
+            print("      current       - Show current session name")
+            
+            print("\n  new")
+            print("    Usage: new <artifact>")
+            print("    Create a new artifact for investigation")
+            
+            print("\n  modules")
+            print("    Usage: modules")
+            print("    List all available modules and their compatible artifact types")
+            
+            print("\n  run")
+            print("    Usage: run <module> [command] <artifact>")
+            print("    Run a specific module against an artifact")
+            
+            print("\n  machine")
+            print("    Usage: machine <artifact>")
+            print("    Run all available modules against an artifact")
+            
+            print("\n  ls")
+            print("    Usage: ls")
+            print("    List artifacts in current session")
+            
+            print("\n  wipe")
+            print("    Usage: wipe")
+            print("    Clear current session")
+            
+            print("\n  quit")
+            print("    Usage: quit")
+            print("    Exit Omnibus")
+            
+            print("\nAvailable Artifact Types:")
+            print("-" * 23)
+            for artifact_type, modules in self.modules.items():
+                print(f"  {artifact_type}: {', '.join(modules)}")
+            
+            print("\nFor module-specific help, type: help <module>")
             return
         
         # Show module-specific help
@@ -388,30 +449,18 @@ class OmnibusShell(cmd2.Cmd):
         print(f"[+] Added to session with ID: {next_id}")
 
     def do_modules(self, arg: str) -> None:
-        """List available modules for an artifact
-        Usage: modules <artifact>"""
-        if not arg:
-            print("[!] Please specify an artifact")
-            return
-
-        if not self.db.current_session:
-            print("[!] No session selected. Create or select a session first.")
-            return
-
-        # Get artifact using helper method that handles lists
-        artifact = self._get_artifact(arg)
-        if not artifact:
-            return
-
-        artifact_type = artifact['type']
-        available_modules = self.modules.get(artifact_type, [])
-        if not available_modules:
-            print(f"[!] No modules available for {artifact_type} artifacts")
-            return
-
-        print(f"\nAvailable modules for {artifact_type} artifact {artifact['name']}:")
-        for module in sorted(available_modules):
+        """List all available modules and their compatible artifact types
+        Usage: modules"""
+        
+        # Get all unique modules across all artifact types
+        all_modules = sorted(set(module for modules in self.modules.values() for module in modules))
+        
+        print("\nAvailable modules:")
+        for module in all_modules:
+            # Show which artifact types can use this module
+            compatible_types = [atype for atype, mods in self.modules.items() if module in mods]
             print(f"  - {module}")
+            print(f"    Compatible with: {', '.join(compatible_types)}")
         print("\nTo run a module: run <module> <artifact>")
 
     def do_run(self, arg: str) -> None:
@@ -539,7 +588,7 @@ class OmnibusShell(cmd2.Cmd):
             artifact_name = artifact_value
 
         # Try each artifact type until we find it
-        for artifact_type in ['ipv4', 'fqdn', 'hash', 'btc']:
+        for artifact_type in ['ipv4', 'fqdn', 'hash', 'btc', 'keyword']:
             artifact = self.db.find_artifact(artifact_type, artifact_name)
             if artifact:
                 return artifact

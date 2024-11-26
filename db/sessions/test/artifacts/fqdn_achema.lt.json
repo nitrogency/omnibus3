@@ -1,0 +1,41 @@
+{
+  "name": "achema.lt",
+  "type": "fqdn",
+  "subtype": "",
+  "source": "",
+  "parent": "",
+  "created": "2024-11-26T13:10:34.058246",
+  "children": [],
+  "data": {
+    "greyhat": {
+      "files": {
+        "query": {
+          "keywords": "achema lt",
+          "regexp": false,
+          "noautocorrect": false,
+          "buckets": [],
+          "excludedBuckets": [],
+          "extensions": [],
+          "stopExtensions": [],
+          "fullPath": false,
+          "lastModifiedFrom": null,
+          "lastModifiedTo": null,
+          "sizeFrom": null,
+          "sizeTo": null,
+          "order": "",
+          "direction": "",
+          "limit": 1000,
+          "pagingMode": "offset",
+          "start": 0,
+          "searchAfter": null,
+          "scrollId": null
+        },
+        "meta": {
+          "results": 0,
+          "notice": "As a free user you are searching in 2813 million from the 14819.915401 million files in the index . Premium users also have sorting enabled, full path search instead of only filename and file listing enabled for all buckets .  <a href = \"//grayhatwarfare.com/purchase\" > Upgrade your account</a > to enable all features and remove all limitations . "
+        },
+        "files": []
+      }
+    }
+  }
+}

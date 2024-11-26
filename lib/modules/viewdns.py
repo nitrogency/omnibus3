@@ -18,12 +18,26 @@ COMMANDS = {
     'dnslookup': {
         'endpoint': '/dnsrecord/',
         'params': ['domain'],
+        'format': 'domain',
         'description': '(Default) Get DNS records for a domain (A, AAAA, MX, NS, SOA, TXT)'
     },
     'portscan': {
         'endpoint': '/portscan/',
         'params': ['domain'],
+        'format': 'domain/IP',
         'description': 'Scan common ports on a domain/IP to check for open services'
+    },
+    'tracert': {
+        'endpoint': '/traceroute/',
+        'params': ['domain'],
+        'format': 'domain/IP',
+        'description': 'Trace route to a domain/IP'
+    },
+    'history': {
+        'endpoint': '/iphistory/',
+        'params': ['domain'],
+        'format': 'domain',
+        'description': 'Get historical list of IP addresses a given domain name has been hosted on'
     }
 }
 
@@ -34,7 +48,10 @@ def info():
     for cmd, info in sorted(COMMANDS.items()):
         print(f"  {cmd}")
         print(f"    Description: {info['description']}")
-        print(f"    Usage: run viewdns {cmd} <{info['params'][0]}>")
+        if 'format' in info:
+            print(f"    Format: {info['format']}")
+        if 'params' in info:
+            print(f"    Usage: run viewdns {cmd} <{info['params'][0]}>")
         print()
 
 def get_api_key() -> Optional[str]:
@@ -79,7 +96,7 @@ def main(artifact: Dict) -> Optional[Dict]:
     command = artifact.get('data', {}).get('command', 'dnslookup')
     if command not in COMMANDS:
         print(f"[!] Invalid command: {command}")
-        print_commands()
+        info()
         return None
 
     api_key = get_api_key()
@@ -112,14 +129,7 @@ def main(artifact: Dict) -> Optional[Dict]:
 
         print(f"[*] MODE: {command}")
         print("[+] ViewDNS lookup complete")
-        if command == 'dnslookup':
-            if 'records' in data:
-                for record in data['records']:
-                    print(f"  {record['type']} {record['name']} - {record['data']}")
-        elif command == 'portscan':
-            if 'ports' in data:
-                for port in data['ports']:
-                    print(f"  Port {port['number']}: {port['service']} - {port['state']}")
+        print(f"Output: {json.dumps(data, indent=2)}")
         
         return artifact
 
