@@ -186,6 +186,36 @@ class JsonDB:
             for file in os.listdir(artifacts_dir):
                 os.remove(os.path.join(artifacts_dir, file))
 
+    def delete_session(self, session_name: str) -> bool:
+        """Delete a session and all its artifacts"""
+        session_path = self._get_session_path(session_name)
+        if not os.path.exists(session_path):
+            return False
+        
+        try:
+            # Delete all files in artifacts directory
+            artifacts_dir = self._get_session_artifacts_dir(session_name)
+            if os.path.exists(artifacts_dir):
+                for file in os.listdir(artifacts_dir):
+                    os.remove(os.path.join(artifacts_dir, file))
+                os.rmdir(artifacts_dir)
+            
+            # Delete session file and directory
+            session_file = self._get_session_file(session_name)
+            if os.path.exists(session_file):
+                os.remove(session_file)
+            os.rmdir(session_path)
+            
+            # Clear current session if it was the deleted one
+            if self.current_session == session_name:
+                self.current_session = None
+                self.session = {}
+            
+            return True
+        except Exception as e:
+            print(f"[!] Error deleting session: {str(e)}")
+            return False
+
 class Artifact:
     """Artifact data model"""
     def __init__(self, name: str, artifact_type: Optional[str] = None):
@@ -319,6 +349,7 @@ class OmnibusShell(cmd2.Cmd):
             print("      select <name>  - Select an existing session")
             print("      list          - List all available sessions")
             print("      current       - Show current session name")
+            print("      delete <name> - Delete a session")
             
             print("\n  new")
             print("    Usage: new <artifact>")
@@ -362,13 +393,14 @@ class OmnibusShell(cmd2.Cmd):
     def do_session(self, arg):
         """Session management commands
         Usage: 
-            session create <name>  - Create a new session
-            session select <name>  - Select an existing session
+            session create <n>  - Create a new session
+            session select <n>  - Select an existing session
             session list          - List all available sessions
-            session current       - Show current session name"""
+            session current       - Show current session name
+            session delete <n>  - Delete a session"""
         args = arg.split()
         if not args:
-            print("[!] Please specify a subcommand (create/select/list/current)")
+            print("[!] Please specify a subcommand (create/select/list/current/delete)")
             return
 
         cmd = args[0].lower()
@@ -405,9 +437,19 @@ class OmnibusShell(cmd2.Cmd):
                 print(f"[*] Current session: {self.db.current_session}")
             else:
                 print("[!] No session selected")
+
+        elif cmd == "delete" and len(args) > 1:
+            session_name = args[1]
+            if session_name == self.db.current_session:
+                print("[!] Cannot delete the current session. Switch to another session first.")
+                return
+            if self.db.delete_session(session_name):
+                print(f"[+] Deleted session: {session_name}")
+            else:
+                print(f"[!] Session '{session_name}' not found")
         
         else:
-            print("[!] Invalid subcommand. Use: create, select, list, or current")
+            print("[!] Invalid command. Usage: session <create|select|list|current|delete> [name]")
 
     def do_new(self, arg: str) -> None:
         """Create a new artifact
@@ -579,6 +621,10 @@ class OmnibusShell(cmd2.Cmd):
         """Exit Omnibus"""
         print("[*] Goodbye!")
         return True
+
+    def do_exit(self, _):
+        """Exit Omnibus (alias for quit)"""
+        return self.do_quit(_)
 
     def _get_artifact(self, artifact_name: str) -> Optional[Dict]:
         """Get artifact from database by name"""
