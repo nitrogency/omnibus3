@@ -4,8 +4,7 @@
 
 ## Installation
 Install the requirements using:
-`pip install -r requirements.txt`
-Then run the script with:
+`pip install -r requirements.txt`, then run the script with:
 `python omnibus-cli.py`
 
 That's it!
