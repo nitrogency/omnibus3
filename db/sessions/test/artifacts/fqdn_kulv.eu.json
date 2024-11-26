@@ -1,0 +1,174 @@
+{
+  "name": "kulv.eu",
+  "type": "fqdn",
+  "subtype": "",
+  "source": "",
+  "parent": "",
+  "created": "2024-11-26T11:42:08.538945",
+  "children": [],
+  "data": {
+    "viewdns": {
+      "dnslookup": {
+        "query": {
+          "tool": "dnsrecord_PRO",
+          "domain": "kulv.eu",
+          "recordtype": "ANY"
+        },
+        "response": {
+          "records": [
+            {
+              "name": "kulv.eu.",
+              "ttl": "1800",
+              "class": "IN",
+              "type": "SOA",
+              "data": "ashton.ns.cloudflare.com. dns.cloudflare.com. 2356106652 10000 2400 604800 1800"
+            },
+            {
+              "name": "kulv.eu.",
+              "ttl": "86400",
+              "class": "IN",
+              "type": "NS",
+              "data": "ashton.ns.cloudflare.com."
+            },
+            {
+              "name": "kulv.eu.",
+              "ttl": "86400",
+              "class": "IN",
+              "type": "NS",
+              "data": "paislee.ns.cloudflare.com."
+            },
+            {
+              "name": "kulv.eu.",
+              "ttl": "300",
+              "class": "IN",
+              "type": "A",
+              "data": "104.21.82.196"
+            },
+            {
+              "name": "kulv.eu.",
+              "ttl": "300",
+              "class": "IN",
+              "type": "A",
+              "data": "172.67.162.213"
+            },
+            {
+              "name": "kulv.eu.",
+              "ttl": "300",
+              "class": "IN",
+              "type": "AAAA",
+              "data": "2606:4700:3034::ac43:a2d5"
+            },
+            {
+              "name": "kulv.eu.",
+              "ttl": "300",
+              "class": "IN",
+              "type": "AAAA",
+              "data": "2606:4700:3031::6815:52c4"
+            },
+            {
+              "name": "kulv.eu.",
+              "ttl": "3600",
+              "class": "IN",
+              "type": "TXT",
+              "data": "\"google-site-verification=AmsddDolLdnnV3kC-RmyWcK0GZ6aG0ia0ASOBHUSufg\""
+            },
+            {
+              "name": "kulv.eu.",
+              "ttl": "300",
+              "class": "IN",
+              "type": "CAA",
+              "data": "0 issue \"comodoca.com\""
+            },
+            {
+              "name": "kulv.eu.",
+              "ttl": "300",
+              "class": "IN",
+              "type": "CAA",
+              "data": "0 issue \"digicert.com\\; cansignhttpexchanges=yes\""
+            },
+            {
+              "name": "kulv.eu.",
+              "ttl": "300",
+              "class": "IN",
+              "type": "CAA",
+              "data": "0 issue \"globalsign.com\""
+            },
+            {
+              "name": "kulv.eu.",
+              "ttl": "300",
+              "class": "IN",
+              "type": "CAA",
+              "data": "0 issue \"letsencrypt.org\""
+            },
+            {
+              "name": "kulv.eu.",
+              "ttl": "300",
+              "class": "IN",
+              "type": "CAA",
+              "data": "0 issue \"pki.goog\\; cansignhttpexchanges=yes\""
+            },
+            {
+              "name": "kulv.eu.",
+              "ttl": "300",
+              "class": "IN",
+              "type": "CAA",
+              "data": "0 issue \"ssl.com\""
+            },
+            {
+              "name": "kulv.eu.",
+              "ttl": "300",
+              "class": "IN",
+              "type": "CAA",
+              "data": "0 issuewild \"comodoca.com\""
+            },
+            {
+              "name": "kulv.eu.",
+              "ttl": "300",
+              "class": "IN",
+              "type": "CAA",
+              "data": "0 issuewild \"digicert.com\\; cansignhttpexchanges=yes\""
+            },
+            {
+              "name": "kulv.eu.",
+              "ttl": "300",
+              "class": "IN",
+              "type": "CAA",
+              "data": "0 issuewild \"globalsign.com\""
+            },
+            {
+              "name": "kulv.eu.",
+              "ttl": "300",
+              "class": "IN",
+              "type": "CAA",
+              "data": "0 issuewild \"letsencrypt.org\""
+            },
+            {
+              "name": "kulv.eu.",
+              "ttl": "300",
+              "class": "IN",
+              "type": "CAA",
+              "data": "0 issuewild \"pki.goog\\; cansignhttpexchanges=yes\""
+            },
+            {
+              "name": "kulv.eu.",
+              "ttl": "300",
+              "class": "IN",
+              "type": "CAA",
+              "data": "0 issuewild \"ssl.com\""
+            }
+          ]
+        }
+      },
+      "portscan": {
+        "query": {
+          "tool": "portscan_PRO",
+          "host": ""
+        },
+        "response": {
+          "port": []
+        }
+      }
+    },
+    "command": "dnslookup"
+  }
+}

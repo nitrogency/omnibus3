@@ -34,7 +34,9 @@ o               .        ___---___                    .
 ██║   ██║██║╚██╔╝██║██║╚██╗██║██║██╔══██╗██║   ██║╚════██║
 ╚██████╔╝██║ ╚═╝ ██║██║ ╚████║██║██████╔╝╚██████╔╝███████║
  ╚═════╝ ╚═╝     ╚═╝╚═╝  ╚═══╝╚═╝╚═════╝  ╚═════╝ ╚══════╝
-             https://github.com/InQuest/omnibus
+  Original project:https://github.com/InQuest/omnibus
+  Updated by: https://github.com/nitrogency/omnibus3
+
 
 """, """
 ▒█████   ███▄ ▄███▓ ███▄    █  ██▓ ▄▄▄▄    █    ██   ██████ 
