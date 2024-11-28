@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-##
-# The OSINT Omnibus - Simplified Version with JSON Storage
-##
 import os
 import sys
 import cmd2
@@ -88,7 +85,17 @@ class JsonDB:
         session_file = self._get_session_file(self.current_session)
         if os.path.exists(session_file):
             with open(session_file, 'r') as f:
-                self.session = json.load(f)
+                try:
+                    session_data = json.load(f)
+                    # Try to parse any JSON string values back to their original type
+                    self.session = {}
+                    for key, value in session_data.items():
+                        try:
+                            self.session[key] = json.loads(value)
+                        except (json.JSONDecodeError, TypeError):
+                            self.session[key] = value
+                except json.JSONDecodeError:
+                    self.session = {}
         else:
             self.session = {}
 
@@ -98,8 +105,17 @@ class JsonDB:
             return
 
         session_file = self._get_session_file(self.current_session)
+        
+        # Ensure all values are JSON serializable
+        session_data = {}
+        for key, value in self.session.items():
+            if isinstance(value, (list, dict)):
+                session_data[key] = json.dumps(value)
+            else:
+                session_data[key] = value
+
         with open(session_file, 'w') as f:
-            json.dump(self.session, f, indent=2)
+            json.dump(session_data, f, indent=4)
 
     def _get_artifact_path(self, artifact_type: str, name: str) -> str:
         """Get path for artifact file"""
@@ -153,18 +169,30 @@ class JsonDB:
         file_path = self._get_artifact_path(artifact_type, name)
         return os.path.exists(file_path)
 
-    def add_to_session(self, key: str, value: str):
+    def add_to_session(self, key: str, value: Any):
         """Add artifact to session"""
         if not self.current_session:
             print("[!] No session selected. Create or select a session first.")
             return
 
-        self.session[key] = value
+        # Convert any unhashable types to their string representation for storage
+        if isinstance(value, (list, dict)):
+            self.session[str(key)] = json.dumps(value)
+        else:
+            self.session[str(key)] = value
         self._save_session()
 
-    def get_from_session(self, key: str) -> Optional[str]:
+    def get_from_session(self, key: str) -> Optional[Any]:
         """Get artifact from session"""
-        return self.session.get(key)
+        value = self.session.get(str(key))
+        if value is None:
+            return None
+            
+        # Try to parse JSON string back to original type
+        try:
+            return json.loads(value)
+        except (json.JSONDecodeError, TypeError):
+            return value
 
     def list_session(self) -> Dict[str, str]:
         """List all artifacts in session"""
@@ -215,6 +243,36 @@ class JsonDB:
         except Exception as e:
             print(f"[!] Error deleting session: {str(e)}")
             return False
+
+    def delete_artifact(self, artifact_type: str, name: str) -> bool:
+        """Delete an artifact file"""
+        file_path = self._get_artifact_path(artifact_type, name)
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            return True
+        return False
+
+    def remove_from_session(self, target_name: str) -> bool:
+        """Remove artifact from session by name"""
+        if not self.current_session:
+            return False
+
+        # Find and remove the artifact with matching name
+        for key, value in list(self.session.items()):
+            artifact_name = value
+            if isinstance(value, str):
+                try:
+                    value_dict = json.loads(value)
+                    if isinstance(value_dict, dict):
+                        artifact_name = value_dict.get('name', value)
+                except (json.JSONDecodeError, TypeError):
+                    pass
+            
+            if artifact_name == target_name:
+                del self.session[key]
+                self._save_session()
+                return True
+        return False
 
 class Artifact:
     """Artifact data model"""
@@ -282,7 +340,10 @@ class OmnibusShell(cmd2.Cmd):
         # Shell settings
         self.prompt = 'omnibus >> '
         self.intro = show_banner() + '\nWelcome to Omnibus! Type "help" for a list of commands.'
-
+        
+        # Enable debug mode
+        self.debug = True
+        
         # Module mapping
         self.modules = {
             'btc': ['blockchain'],
@@ -326,6 +387,7 @@ class OmnibusShell(cmd2.Cmd):
         Available commands:
             session  - Manage sessions (create/select/list/current)
             new     - Create a new artifact
+            rm      - Remove an artifact
             modules - List available modules for an artifact
             run     - Run a specific module against an artifact
             machine - Run all available modules against an artifact
@@ -354,6 +416,10 @@ class OmnibusShell(cmd2.Cmd):
             print("\n  new")
             print("    Usage: new <artifact>")
             print("    Create a new artifact for investigation")
+            
+            print("\n  rm")
+            print("    Usage: rm <artifact>")
+            print("    Remove an artifact from both session and filesystem")
             
             print("\n  modules")
             print("    Usage: modules")
@@ -481,14 +547,40 @@ class OmnibusShell(cmd2.Cmd):
         if not self.db.exists(artifact_type, artifact['name']):
             self.db.insert_artifact(artifact_type, artifact)
             print(f"[+] Created new {artifact_type} artifact: {arg}")
+            # Get next available ID for session
+            session = self.db.list_session()
+            next_id = str(len(session) + 1)
+            self.db.add_to_session(next_id, arg)
+            print(f"[+] Added to session with ID: {next_id}")
         else:
             print(f"[!] Artifact already exists: {arg}")
 
-        # Get next available ID for session
-        session = self.db.list_session()
-        next_id = str(len(session) + 1)
-        self.db.add_to_session(next_id, arg)
-        print(f"[+] Added to session with ID: {next_id}")
+    def do_rm(self, arg: str) -> None:
+        """Remove an artifact from both session and filesystem
+        Usage: rm <artifact>"""
+        if not arg:
+            print("[!] Please specify an artifact")
+            return
+
+        if not self.db.current_session:
+            print("[!] No session selected. Create or select a session first.")
+            return
+
+        # Get artifact details
+        artifact = self._get_artifact(arg)
+        if not artifact:
+            print(f"[!] Artifact not found: {arg}")
+            return
+
+        # Delete from filesystem
+        if self.db.delete_artifact(artifact['type'], artifact['name']):
+            print(f"[+] Deleted artifact file: {artifact['name']}")
+        
+        # Remove from session
+        if self.db.remove_from_session(artifact['name']):
+            print(f"[+] Removed from session: {artifact['name']}")
+        
+        print("[+] Artifact deleted successfully")
 
     def do_modules(self, arg: str) -> None:
         """List all available modules and their compatible artifact types
@@ -576,15 +668,19 @@ class OmnibusShell(cmd2.Cmd):
             print(f"[!] No modules available for artifact type: {artifact_type}")
             return
 
-        results = []
+        # Initialize data dict if it doesn't exist
+        if 'data' not in artifact:
+            artifact['data'] = {}
+
+        results = {}
         for module_name in self.modules[artifact_type]:
             print(f"[*] Running module: {module_name}")
             result = self._run_module(module_name, artifact)
-            if result and module_name in result.get('data', {}):
-                module_data = result['data'][module_name]
+            if result and isinstance(result.get('data', {}), dict):
+                module_data = result['data'].get(module_name)
                 if module_data is not None:
                     self._process_result(artifact, result)
-                    results.append({module_name: module_data})
+                    results[module_name] = module_data
                 else:
                     print(f"[!] No results found ({module_name})")
             else:
@@ -592,7 +688,11 @@ class OmnibusShell(cmd2.Cmd):
 
         if results:
             print("\n[+] Machine results:")
-            print(json.dumps(results, indent=2))
+            try:
+                print(json.dumps(results, indent=2))
+            except TypeError as e:
+                print(f"[!] Error displaying results: {str(e)}")
+                print("Raw results:", results)
         print("[+] Machine completed")
 
     def do_ls(self, _):
@@ -651,8 +751,13 @@ class OmnibusShell(cmd2.Cmd):
 
     def _process_result(self, artifact: Dict, result: Dict) -> None:
         """Process and store module results"""
+        # Initialize data dict if it doesn't exist
+        if 'data' not in artifact:
+            artifact['data'] = {}
+        
         # Update artifact with new data
-        artifact['data'].update(result.get('data', {}))
+        if isinstance(result.get('data', {}), dict):
+            artifact['data'].update(result.get('data', {}))
         
         # Process any child artifacts
         for child in result.get('children', []):

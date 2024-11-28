@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-##
-# The OSINT Omnibus
 # VirusTotal API module
 ##
 

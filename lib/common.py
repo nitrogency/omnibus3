@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Common utility functions for Omnibus"""
+"""Common utility functions"""
 
 def is_btc_address(artifact: str) -> bool:
     """Check if artifact is a Bitcoin address"""

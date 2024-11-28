@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-##
-# The OSINT Omnibus
 # ViewDNS.info API module
 ##
 
